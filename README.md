@@ -20,7 +20,7 @@ SmoothTilt is a tool that allows for quick and easy tilt effect on UI elements, 
 
 <br>
 
-**Note:** This sample project includes a unity package so you can use this "plugin" in your own projects.
+**Note:** This sample project includes a unity package so you can use this in other projects.
 
 <br>
 
