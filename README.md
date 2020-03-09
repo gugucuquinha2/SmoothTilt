@@ -5,7 +5,7 @@ SmoothTilt is a tool that allows for quick and easy tilt effect on UI elements, 
 ![Demo_gifs](Demo_gifs/GustavoCarneiro_UI_SmoothTilt.gif)
 ![Demo_gifs](Demo_gifs/GustavoCarneiro_UI_SmoothTilt_4.gif)
 
-#### FEATURES:
+### FEATURES:
 - Apply easy and smooth tilt to any object
 - Control the range of the tilt
 - Adjust the smoothness and speed of the effect
@@ -13,14 +13,17 @@ SmoothTilt is a tool that allows for quick and easy tilt effect on UI elements, 
 - In mouse/touch input it supports local mode (the effect only takes place when input is within the object bounds)
 - Supports UI elements, 2D and 3D objects
 
-#### HOW TO USE:
+### HOW TO USE:
 1. Add the script "SmoothTilt.cs" to the object you want to apply the effect
 2. Adjust the parameters as you see fit
 3. Hit Play and Voilá!
 
 <br>
+
 **Note:** This sample project includes a unity package so you can use this "plugin" in your own projects.
+
 <br>
+
 Have fun!
 
 ![Demo_gifs](Demo_gifs/GustavoCarneiro_UI_SmoothTilt_6.gif)
