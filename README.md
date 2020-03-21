@@ -5,12 +5,13 @@ SmoothTilt is a tool that allows for quick and easy tilt effect on UI elements, 
 
 ![Demo_gifs](Demo_gifs/GustavoCarneiro_UI_SmoothTilt.gif)
 ![Demo_gifs](Demo_gifs/GustavoCarneiro_UI_SmoothTilt_4.gif)
+![Demo_gifs](Demo_gifs/GustavoCarneiro_UI_SmoothTilt_mobile.gif)
 
 ### FEATURES:
 - Apply easy and smooth tilt to any object
 - Control the range of the tilt
 - Adjust the smoothness and speed of the effect
-- Supports mouse, touch, gamepad or keyboard input
+- Supports mouse, touch, accelerometer (NEW!), gamepad or keyboard input
 - In mouse/touch input it supports local mode (the effect only takes place when input is within the object bounds)
 - Supports UI elements, 2D and 3D objects
 
