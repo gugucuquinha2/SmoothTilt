@@ -44,6 +44,14 @@ public class SmoothTilt : MonoBehaviour
     private float xInput = 0;
     private float yInput = 0;
 
+#if UNITY_ANDROID || UNITY_IOS
+    private float accelerometerUpdateInterval = 1.0f / 60.0f;
+    private float lowPassKernelWidthInSeconds = 0.1f;
+
+    private float lowPassFilterFactor;
+    private Vector3 lowPassValue;
+#endif
+
     #region PUBLIC PROPERTIES
     [Space]
 
@@ -61,12 +69,12 @@ public class SmoothTilt : MonoBehaviour
         set { cam = value; }
     }
 
-    [Tooltip("If true, the effect will be applied relative to the object bounds. If false, the effect will applied relative to the whole screen. Can only be used, if the GameObject has a RectTransform or a Renderer.")]
+    [Tooltip("If true, the effect will be applied relative to the object bounds. If false, the effect will applied relative to the whole screen.")]
     [SerializeField]
     [DrawCondition("useAxis", eComparisonType.NotEqual, true)]
     private bool isLocal = false;
     /// <summary>
-    /// If true, the effect will be applied relative to the object bounds. If false, the effect will applied relative to the whole screen. Can only be used, if the GameObject has a RectTransform or a Renderer.
+    /// If true, the effect will be applied relative to the object bounds. If false, the effect will applied relative to the whole screen.
     /// </summary>
     public bool IsLocal
     {
@@ -102,12 +110,12 @@ public class SmoothTilt : MonoBehaviour
 
     [Space]
 
-    [Tooltip("If true, the effect will support the use of Gamepad/Keyboard Axis keys.")]
+    [Tooltip("If true, the effect will support the use of Gamepad/Keyboard Axis keys, or the Accelerometer sensor (only on mobile).")]
     [SerializeField]
     [DrawCondition("isLocal", eComparisonType.NotEqual, true)]
     private bool useAxis = false;
     /// <summary>
-    /// If true, the effect will support the use of Gamepad/Keyboard Axis keys.
+    /// If true, the effect will support the use of Gamepad/Keyboard Axis keys, or the Accelerometer sensor (only on mobile).
     /// </summary>
     public bool UseAxis
     {
@@ -115,6 +123,7 @@ public class SmoothTilt : MonoBehaviour
         set { useAxis = value; }
     }
 
+#if !UNITY_ANDROID && !UNITY_IOS
     [DrawCondition("useAxis", eComparisonType.NotEqual, false)]
     [SerializeField]
     [Tooltip("The name of the Input Axis to be used when rotating on the Y axis.")]
@@ -153,11 +162,26 @@ public class SmoothTilt : MonoBehaviour
         get { return resetOnNoInput; }
         set { resetOnNoInput = value; }
     }
+#endif
 
     [Space]
 
     [Header("PROPERTIES")]
 
+#if UNITY_ANDROID || UNITY_IOS
+    [DrawCondition("useAxis", eComparisonType.NotEqual, false)]
+    [SerializeField]
+    [Tooltip("The sensibility of the Accelerometer input. The smaller the value, the less Accelerometer input is needed to tilt the GameObject. The device must be in a flat position.")]
+    private float accelSensibility = 0.5f;
+    /// <summary>
+    /// The sensibility of the Accelerometer input. The larger the value, the less Accelerometer input is needed to tilt the GameObject. The device must be in a flat position.
+    /// </summary>
+    public float AccelSensibility
+    {
+        get { return accelSensibility; }
+        set { accelSensibility = value; }
+    }
+#else
     [DrawCondition("useAxis", eComparisonType.NotEqual, false)]
     [SerializeField]
     [Tooltip("The speed multiplier to the horizontal Input Axis.")]
@@ -183,12 +207,12 @@ public class SmoothTilt : MonoBehaviour
         get { return verticalSpeed; }
         set { verticalSpeed = value; }
     }
+#endif
 
     [Space]
 
     [SerializeField]
     [Tooltip("How smooth is the effect.")]
-    [Range(0f, 10f)]
     private float smoothness = 1f;
     /// <summary>
     /// How smooth is the effect.
@@ -224,9 +248,26 @@ public class SmoothTilt : MonoBehaviour
 
     void OnValidate()
     {
+#if UNITY_ANDROID || UNITY_IOS
+        // accelerometer input
+        if (accelSensibility > 1)
+        {
+            accelSensibility = 1;
+        }
+        else if (accelSensibility < 0)
+        {
+            accelSensibility = 0;
+        }
+#else
         if (string.IsNullOrEmpty(horizontalAxis) || string.IsNullOrEmpty(verticalAxis))
         {
             Debug.LogWarning("One or more Input Axis names are not filled.");
+        }
+#endif
+
+        if (smoothness < 0)
+        {
+            smoothness = 0;
         }
     }
 
@@ -260,10 +301,20 @@ public class SmoothTilt : MonoBehaviour
         if (useAxis)
         {
             // store input values
+#if UNITY_ANDROID || UNITY_IOS
+
+            lowPassValue = LowPassFilterAccelerometer(lowPassValue);
+
+            xInput = lowPassValue.x;
+            yInput = lowPassValue.y;
+
+            AccelerometerTilt(xInput, yInput);
+#else
             xInput = Input.GetAxisRaw(horizontalAxis);
             yInput = Input.GetAxisRaw(verticalAxis);
 
             AxisTilt(xInput, yInput);
+#endif
         }
         else
         {
@@ -328,32 +379,6 @@ public class SmoothTilt : MonoBehaviour
 #endregion
 
 #region Private Methods
-    /// <summary>
-    /// Tilt effect based on keyboard/gamepad input.
-    /// </summary>
-    private void AxisTilt(float _xInput, float _yInput)
-    {
-#if UNITY_EDITOR
-        Debug.Log("INPUT: " + _xInput + " , " + _yInput);
-#endif
-
-        // calculate the rotation based on the speed
-        if (yInverse)
-            yRot -= horizontalSpeed * _xInput;
-        else yRot += horizontalSpeed * _xInput;
-        if (xInverse)
-            xRot += verticalSpeed * _yInput;
-        else xRot -= verticalSpeed * _yInput;
-
-        if (ResetOnNoInput && _xInput == 0 && _yInput == 0)
-        {
-            ResetToCenterRotation();
-        }
-
-        // clamp the tilt values to the calculated limit 
-        yRot = Mathf.Clamp(yRot, centerRotation.y - tiltRange, centerRotation.y + tiltRange);
-        xRot = Mathf.Clamp(xRot, centerRotation.x - tiltRange, centerRotation.x + tiltRange);
-    }
 
     /// <summary>
     /// Tilt effect based on mouse/touch movement.
@@ -393,6 +418,52 @@ public class SmoothTilt : MonoBehaviour
             ResetToCenterRotation();
         }
     }
+
+#if UNITY_ANDROID || UNITY_IOS
+    /// <summary>
+    /// Tilt effect based on the accelerometer sensor input. Only works for mobile devices.
+    /// </summary>
+    private void AccelerometerTilt(float _xInput, float _yInput)
+    {
+        // map the accelerometer input values to the rotation values based on the tilt range
+        if (yInverse)
+            yRot = Map(_xInput, -accelSensibility, accelSensibility, centerRotation.y + tiltRange, centerRotation.y - tiltRange);
+        else yRot = Map(_xInput, -accelSensibility, accelSensibility, centerRotation.y - tiltRange, centerRotation.y + tiltRange);
+
+        if (xInverse)
+            xRot = Map(_yInput, -accelSensibility, accelSensibility, centerRotation.x - tiltRange, centerRotation.x + tiltRange);
+        else xRot = Map(_yInput, -accelSensibility, accelSensibility, centerRotation.x + tiltRange, centerRotation.x - tiltRange);
+
+        // clamp the tilt values to the calculated limit 
+        yRot = Mathf.Clamp(yRot, centerRotation.y - tiltRange, centerRotation.y + tiltRange);
+        xRot = Mathf.Clamp(xRot, centerRotation.x - tiltRange, centerRotation.x + tiltRange);
+    }
+#else
+    /// <summary>
+    /// Tilt effect based on keyboard/gamepad input.
+    /// </summary>
+    private void AxisTilt(float _xInput, float _yInput)
+    {
+        //Debug.Log("INPUT: " + _xInput + " , " + _yInput);
+
+        // calculate the rotation based on the speed
+        if (yInverse)
+            yRot -= horizontalSpeed * _xInput;
+        else yRot += horizontalSpeed * _xInput;
+        if (xInverse)
+            xRot += verticalSpeed * _yInput;
+        else xRot -= verticalSpeed * _yInput;
+
+        if (resetOnNoInput && _xInput == 0 && _yInput == 0)
+        {
+            ResetToCenterRotation();
+        }
+
+        // clamp the tilt values to the calculated limit 
+        yRot = Mathf.Clamp(yRot, centerRotation.y - tiltRange, centerRotation.y + tiltRange);
+        xRot = Mathf.Clamp(xRot, centerRotation.x - tiltRange, centerRotation.x + tiltRange);
+    }
+#endif
 
 #endregion
 #endregion
@@ -468,6 +539,17 @@ public class SmoothTilt : MonoBehaviour
         return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
     }
 
+#if UNITY_ANDROID || UNITY_IOS
+    /// <summary>
+    /// Low Pass Filter to smoothen the accelerometer input.
+    /// </summary>
+    private Vector3 LowPassFilterAccelerometer(Vector3 prevValue)
+    {
+        Vector3 newValue = Vector3.Lerp(prevValue, Input.acceleration, lowPassFilterFactor);
+        return newValue;
+    }
+#endif
+
     private void SetupComponents()
     {
         thisTransf = transform;
@@ -483,6 +565,11 @@ public class SmoothTilt : MonoBehaviour
                 isLocal = false;
             }
         }
+
+#if UNITY_ANDROID || UNITY_IOS
+        lowPassFilterFactor = accelerometerUpdateInterval / lowPassKernelWidthInSeconds;
+        lowPassValue = Input.acceleration;
+#endif
     }
 #endregion
 
