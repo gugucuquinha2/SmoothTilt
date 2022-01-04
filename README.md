@@ -26,5 +26,7 @@ Have fun!
 
 ![Demo_gifs](Demo_gifs/GustavoCarneiro_UI_SmoothTilt_6.gif)
 
-Gustavo Carneiro (2020)
+<br>
+
+>Copyright © [Gustavo Carneiro](https://read.cv/gugucuquinha) 2020
 
